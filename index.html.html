@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="am" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ቦሌ ክፍለ ከተማ አስተዳደር - የአቅጣጫ እና አገልግሎት መመሪያ | Bole Sub City Direction Locator</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ethiopia: {
+                            green: '#009b48',
+                            yellow: '#ffde00',
+                            red: '#de2010',
+                            darkGreen: '#005c2b',
+                            accent: '#0284c7'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans Ethiopic', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts for Ethiopic support -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet JS Map Engine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans Ethiopic', 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        #map {
+            min-height: 420px;
+            height: 100%;
+            width: 100%;
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
+
+    <!-- Top Bar with Official Flag Color Accents -->
+    <div class="h-2 flex">
+        <div class="w-1/3 bg-emerald-600"></div>
+        <div class="w-1/3 bg-amber-400"></div>
+        <div class="w-1/3 bg-red-600"></div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="w-12 h-12 bg-emerald-700 rounded-full flex items-center justify-center text-white border-2 border-amber-400 shadow-inner font-bold text-xl">
+                        በ
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white leading-tight" id="header-title">
+                            የቦሌ ክፍለ ከተማ አስተዳደር
+                        </h1>
+                        <p class="text-xs text-amber-300" id="header-subtitle">
+                            የአቅጣጫ፣ የመሥሪያ ቤት እና የአገልግሎት መረጃ መመሪያ
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right Actions: Status & Language Toggle -->
+                <div class="flex items-center space-x-3">
+                    <!-- Office Status Indicator -->
+                    <div id="status-badge" class="hidden sm:flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/80 text-emerald-200 border border-emerald-500">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-2"></span>
+                        <span id="status-text">ክፍት ነው (Open)</span>
+                    </div>
+
+                    <!-- Language Switcher Button -->
+                    <button id="lang-toggle" onclick="toggleLanguage()" class="flex items-center px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs sm:text-sm font-semibold transition">
+                        <i data-lucide="globe" class="w-4 h-4 mr-1.5"></i>
+                        <span id="lang-text">English</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+        <!-- Banner / Quick Announcement -->
+        <section class="bg-gradient-to-r from-emerald-800 via-emerald-900 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div class="relative z-10 max-w-3xl space-y-3">
+                <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-400 text-slate-900 font-semibold">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-1"></i>
+                    <span id="hero-badge">መገናኛ (መሀል ክፍለ ከተማ HQ)</span>
+                </div>
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-white leading-snug" id="hero-heading">
+                    ወደ ቦሌ ክፍለ ከተማ አስተዳደር መምጣት ይፈልጋሉ?
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed" id="hero-desc">
+                    ከማንኛውም የአዲስ አበባ አካባቢ ወደ ዋናው አስተዳደር ሕንፃ ወይም ወደ 15ቱ ወረዳ ጽሕፈት ቤቶች የሚወስዱ ቀጥታ አቅጣጫዎችን፣ የታክሲ መስመሮችን እና የፎቅ መመሪያዎችን እዚህ ያግኙ።
+                </p>
+
+                <!-- Quick Stats Cards -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                        <div class="text-amber-300 font-bold text-lg sm:text-xl">15</div>
+                        <div class="text-xs text-slate-200" id="stat-woredas">ወረዳዎች</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                        <div class="text-amber-300 font-bold text-lg sm:text-xl">መገናኛ</div>
+                        <div class="text-xs text-slate-200" id="stat-main">ዋና መስሪያ ቤት</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                        <div class="text-amber-300 font-bold text-lg sm:text-xl">G+5</div>
+                        <div class="text-xs text-slate-200" id="stat-floors">የአገልግሎት ፎቆች</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center">
+                        <div class="text-amber-300 font-bold text-lg sm:text-xl">LRT / ታክሲ</div>
+                        <div class="text-xs text-slate-200" id="stat-transit">ቀላል ትራንስፖርት</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Direction & Map Workspace -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Side: Direction Planner & Category Selector (5 Cols) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-5">
+                
+                <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center" id="planner-title">
+                        <i data-lucide="navigation" class="w-5 h-5 text-emerald-600 mr-2"></i>
+                        የአቅጣጫ መፈለጊያ (Route Planner)
+                    </h3>
+                    <span class="text-xs text-slate-400 font-medium" id="planner-tag">ቀጥታ አቅጣጫ</span>
+                </div>
+
+                <!-- Direction Calculation Inputs -->
+                <div class="space-y-4">
+                    <!-- Origin Selector -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5" id="label-from">
+                            መነሻ ቦታ (Starting Point)
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-slate-400 absolute left-3 top-3.5"></i>
+                            <select id="origin-select" onchange="calculateRoute()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                <option value="megenagna">መገናኛ አደባባይ (Megenagna Square)</option>
+                                <option value="bole_airport">ቦሌ ዓለም አቀፍ ኤርፖርት (Bole Airport)</option>
+                                <option value="stadium">ስታዲየም / መስቀል አደባባይ (Stadium / Meskel Sq)</option>
+                                <option value="ayat">አያት / ሲኤምሲ (Ayat / CMC)</option>
+                                <option value="gotera">ጎተራ / ሳሪስ (Gotera / Saris)</option>
+                                <option value="torhailoch">ጦርኃይሎች (Torhailoch)</option>
+                                <option value="kazanchis">ካዛንችስ (Kazanchis)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Destination Office Selector -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5" id="label-to">
+                            መዳረሻ መሥሪያ ቤት (Destination Office)
+                        </label>
+                        <div class="relative">
+                            <i data-lucide="building-2" class="w-4 h-4 text-emerald-600 absolute left-3 top-3.5"></i>
+                            <select id="destination-select" onchange="calculateRoute()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-semibold text-slate-800">
+                                <optgroup label="ዋና ክፍለ ከተማ (Sub-City Main HQ)">
+                                    <option value="main_hq" selected>የቦሌ ክፍለ ከተማ ዋና አስተዳደር (መገናኛ HQ)</option>
+                                    <option value="revenue_office">የቦሌ ገቢዎች ጽ/ቤት (Revenue Office)</option>
+                                    <option value="driver_licensing">የአሽከርካሪ ፈቃድ ማዕከል (Driver License HQ)</option>
+                                </optgroup>
+                                <optgroup label="የወረዳ ጽሕፈት ቤቶች (Woreda Offices)">
+                                    <option value="woreda_01">ወረዳ 01 ጽ/ቤት (Bole Atlas / Rwanda)</option>
+                                    <option value="woreda_03">ወረዳ 03 ጽ/ቤት (Gerji / Imperial)</option>
+                                    <option value="woreda_05">ወረዳ 05 ጽ/ቤት (Hayat Zone)</option>
+                                    <option value="woreda_06">ወረዳ 06 ጽ/ቤት (Bole Medhaniallem)</option>
+                                    <option value="woreda_11">ወረዳ 11 ጽ/ቤት (Goro / Jackros)</option>
+                                    <option value="woreda_13">ወረዳ 13 ጽ/ቤት (Lemi Kura Border / Megenagna)</option>
+                                    <option value="woreda_14">ወረዳ 14 ጽ/ቤት (Bulbula Zone)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Mode of Transport Pills -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5" id="label-mode">
+                            የትራንስፖርት አማራጭ (Transport Mode)
+                        </label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="setMode('taxi')" id="mode-taxi" class="mode-btn flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-800 text-xs font-bold transition">
+                                <i data-lucide="bus" class="w-5 h-5 mb-1"></i>
+                                <span id="mode-txt-taxi">ታክሲ/አውቶቡስ</span>
+                            </button>
+                            <button type="button" onclick="setMode('car')" id="mode-car" class="mode-btn flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:border-slate-300 transition">
+                                <i data-lucide="car" class="w-5 h-5 mb-1"></i>
+                                <span id="mode-txt-car">የግል መኪና</span>
+                            </button>
+                            <button type="button" onclick="setMode('walk')" id="mode-walk" class="mode-btn flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:border-slate-300 transition">
+                                <i data-lucide="footprints" class="w-5 h-5 mb-1"></i>
+                                <span id="mode-txt-walk">በእግር (Walk)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculated Route Result Card -->
+                <div id="route-result-card" class="bg-slate-900 text-white rounded-xl p-4 space-y-3 shadow-lg">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+                            <span class="text-xs text-slate-300" id="est-time-label">የሚወስደው ጊዜ:</span>
+                            <span id="route-duration" class="text-sm font-bold text-amber-300">10-15 ደቂቃ</span>
+                        </div>
+                        <div class="text-xs text-slate-400">
+                            <span id="route-distance" class="font-bold text-slate-200">2.4 ኪ.ሜ</span>
+                        </div>
+                    </div>
+
+                    <!-- Step by Step Text Directions -->
+                    <div id="route-steps" class="space-y-2 text-xs text-slate-300 leading-relaxed max-h-40 overflow-y-auto pr-1 scrollbar-thin">
+                        <!-- Dynamically filled by JS -->
+                    </div>
+
+                    <!-- External Google Maps Navigation Launcher -->
+                    <div class="pt-2 border-t border-slate-800">
+                        <a id="google-maps-ext-link" href="#" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-center space-x-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-md">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                            <span id="gmap-ext-btn-text">በ Google Maps መተግበሪያ ክፈት (Open in Google Maps)</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Location Search Bar -->
+                <div class="space-y-2 pt-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider" id="label-quick-filter">
+                        የወረዳ ወይም አገልግሎት መፈለጊያ
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="quick-search-input" onkeyup="filterLocations()" placeholder="ለምሳሌ፡ ወረዳ 03, ንግድ ፈቃድ, ወሳኝ ኩነቶች..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: Interactive OpenStreetMap Container (7 Cols) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h3 class="text-sm font-bold text-slate-800" id="map-header-title">የቦሌ ክፍለ ከተማ በይነ-መረብ ካርታ (Interactive Map)</h3>
+                    </div>
+                    
+                    <!-- Map Layer Switcher & Recenter Controls -->
+                    <div class="flex items-center space-x-1 sm:space-x-2">
+                        <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-[11px] font-medium">
+                            <button onclick="setTileLayer('google')" id="layer-btn-google" class="px-2.5 py-1 rounded-md bg-white text-emerald-700 font-bold shadow-sm">Google Maps</button>
+                            <button onclick="setTileLayer('satellite')" id="layer-btn-satellite" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">Satellite</button>
+                            <button onclick="setTileLayer('osm')" id="layer-btn-osm" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900">OSM</button>
+                        </div>
+                        <button onclick="resetMapCenter()" class="text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 mr-1"></i>
+                            <span id="btn-recenter">መልስ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- The Leaflet Map Canvas -->
+                <div id="map" class="shadow-inner border border-slate-200 min-h-[420px] rounded-xl"></div>
+
+                <!-- Map Legend -->
+                <div class="flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-3 rounded-full bg-red-600 inline-block"></span>
+                        <span id="legend-hq">ዋና አስተዳደር (Megenagna HQ)</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-3 rounded-full bg-emerald-600 inline-block"></span>
+                        <span id="legend-woredas">ወረዳዎች (Woredas)</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                        <span id="legend-revenue">ገቢዎች/ልዩ ማዕከላት</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Floor-by-Floor Directory Section inside Main HQ -->
+        <section class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 flex items-center" id="directory-title">
+                        <i data-lucide="layers" class="w-6 h-6 text-emerald-600 mr-2"></i>
+                        የዋናው አስተዳደር ሕንፃ የፎቅ መመሪያ (Building Office Directory)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1" id="directory-sub">
+                        በመገናኛ በሚገኘው ቦሌ ክፍለ ከተማ ዋና ሕንፃ ውስጥ የሚገኙ ክፍሎች እና መስኮቶች
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-3 py-1 rounded-full" id="building-location-tag">
+                        ቦሌ መገናኛ - ከማራቶን ሕንፃ አጠገብ
+                    </span>
+                </div>
+            </div>
+
+            <!-- Floor Selector Pills -->
+            <div class="flex flex-wrap gap-2 border-b border-slate-200 pb-3" id="floor-tab-buttons">
+                <button onclick="switchFloor(0)" id="floor-btn-0" class="floor-tab active px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-emerald-600 text-white shadow-sm transition">
+                    መሬት ፎቅ (Ground Floor)
+                </button>
+                <button onclick="switchFloor(1)" id="floor-btn-1" class="floor-tab px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                    1ኛ ፎቅ (1st Floor)
+                </button>
+                <button onclick="switchFloor(2)" id="floor-btn-2" class="floor-tab px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                    2ኛ ፎቅ (2nd Floor)
+                </button>
+                <button onclick="switchFloor(3)" id="floor-btn-3" class="floor-tab px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                    3ኛ ፎቅ (3rd Floor)
+                </button>
+                <button onclick="switchFloor(4)" id="floor-btn-4" class="floor-tab px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                    4ኛ እና 5ኛ ፎቅ (4th-5th Floor)
+                </button>
+            </div>
+
+            <!-- Floor Details Display Area -->
+            <div id="floor-content-display" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <!-- Javascript will load detailed offices here -->
+            </div>
+        </section>
+
+        <!-- Service Requirements & Documents Guide -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Service Requirements Checklist -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center" id="req-title">
+                        <i data-lucide="file-check-2" class="w-5 h-5 text-emerald-600 mr-2"></i>
+                        የአገልግሎቶች አስፈላጊ ማስረጃዎች (Requirements)
+                    </h3>
+                    <p class="text-xs text-slate-500" id="req-sub">ወደ መስሪያ ቤቱ ከመምጣታችሁ በፊት መያዝ የሚገቧችሁ ሰነዶች</p>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Service 1: Resident ID -->
+                    <div class="border border-slate-200 rounded-xl p-3.5 hover:border-emerald-300 transition">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccordion('service-1')">
+                            <h4 class="font-bold text-sm text-slate-800 flex items-center" id="serv-1-title">
+                                <i data-lucide="id-card" class="w-4 h-4 text-emerald-600 mr-2"></i>
+                                የነዋሪነት መታወቂያ ለማውጣት / ለማደስ
+                            </h4>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <div id="service-1" class="mt-3 text-xs text-slate-600 space-y-1.5 pl-6 border-l-2 border-emerald-500 hidden">
+                            <p id="serv-1-doc1">• የቄበሌ ህዝብ ቆጠራ ቅጽ / የቤት ቁጥር ማረጋገጫ</p>
+                            <p id="serv-1-doc2">• 3 ጉርድ ፎቶግራፍ (የቅርብ ጊዜ)</p>
+                            <p id="serv-1-doc3">• የቤት ባለቤትነት ደብተር ወይም የታደሰ የኪራይ ውል</p>
+                            <p id="serv-1-doc4">• ነባር መታወቂያ (ለእድሳት ከሆነ)</p>
+                        </div>
+                    </div>
+
+                    <!-- Service 2: Trade License Renewal -->
+                    <div class="border border-slate-200 rounded-xl p-3.5 hover:border-emerald-300 transition">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccordion('service-2')">
+                            <h4 class="font-bold text-sm text-slate-800 flex items-center" id="serv-2-title">
+                                <i data-lucide="briefcase" class="w-4 h-4 text-emerald-600 mr-2"></i>
+                                የንግድ ፈቃድ ማደስ እና ምዝገባ
+                            </h4>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <div id="service-2" class="mt-3 text-xs text-slate-600 space-y-1.5 pl-6 border-l-2 border-emerald-500 hidden">
+                            <p id="serv-2-doc1">• የታደሰ የነዋሪነት መታወቂያ</p>
+                            <p id="serv-2-doc2">• የግብር ከፋይ መለያ ቁጥር (TIN Certificate)</p>
+                            <p id="serv-2-doc3">• ከገቢዎች ጽ/ቤት የግብር ክሊራንስ (Tax Clearance)</p>
+                            <p id="serv-2-doc4">• የንግድ ቦታ ውል ማረጋገጫ (Lease/Rent Agreement)</p>
+                        </div>
+                    </div>
+
+                    <!-- Service 3: Vital Events Registration -->
+                    <div class="border border-slate-200 rounded-xl p-3.5 hover:border-emerald-300 transition">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccordion('service-3')">
+                            <h4 class="font-bold text-sm text-slate-800 flex items-center" id="serv-3-title">
+                                <i data-lucide="scroll" class="w-4 h-4 text-emerald-600 mr-2"></i>
+                                የወሳኝ ኩነቶች (ልደት፣ ጋብቻ፣ ሞት) ምስክር ወረቀት
+                            </h4>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <div id="service-3" class="mt-3 text-xs text-slate-600 space-y-1.5 pl-6 border-l-2 border-emerald-500 hidden">
+                            <p id="serv-3-doc1">• የሆስፒታል ወይም የጤና ጣቢያ የማወራረጃ ደብዳቤ (ለልደት/ለሞት)</p>
+                            <p id="serv-3-doc2">• የወላጆች / የተጋቢዎች የታደሰ መታወቂያ</p>
+                            <p id="serv-3-doc3">• 2 ምስክሮች ከነመታወቂያቸው (ለጋብቻ)</p>
+                        </div>
+                    </div>
+
+                    <!-- Service 4: Land & Construction Permit -->
+                    <div class="border border-slate-200 rounded-xl p-3.5 hover:border-emerald-300 transition">
+                        <div class="flex justify-between items-center cursor-pointer" onclick="toggleAccordion('service-4')">
+                            <h4 class="font-bold text-sm text-slate-800 flex items-center" id="serv-4-title">
+                                <i data-lucide="home" class="w-4 h-4 text-emerald-600 mr-2"></i>
+                                የግንባታ ፈቃድ እና የይዞታ ማረጋገጫ
+                            </h4>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                        </div>
+                        <div id="service-4" class="mt-3 text-xs text-slate-600 space-y-1.5 pl-6 border-l-2 border-emerald-500 hidden">
+                            <p id="serv-4-doc1">• ዋና የቦታ ካርታ / ፕላን (Original Land Lease Certificate)</p>
+                            <p id="serv-4-doc2">• የጸደቀ የግንባታ ዲዛይን (Approved Architectural Design)</p>
+                            <p id="serv-4-doc3">• የባለቤትነት ማረጋገጫ ደብተር</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Public Transport & Taxi Terminal Route Guide -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center" id="transit-title">
+                        <i data-lucide="bus-front" class="w-5 h-5 text-emerald-600 mr-2"></i>
+                        የሕዝብ ትራንስፖርት እና የታክሲ መሳፈሪያዎች
+                    </h3>
+                    <p class="text-xs text-slate-500" id="transit-sub">ዋና ዋና የትራንስፖርት መስመሮች ወደ ቦሌ መገናኛ HQ</p>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Light Rail Transit (LRT) -->
+                    <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 flex items-start space-x-3 space-x-reverse">
+                        <div class="p-2 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                            <i data-lucide="train-front" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800" id="lrt-title">ቀላል ባቡር (Light Rail Transit - LRT)</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed" id="lrt-desc">
+                                ከቃሊቲ፣ ስታዲየም ወይም አያት የሚመጡ ከሆነ በመገናኛ ባቡር ጣቢያ ይውረዱ። ከጣቢያው ወደ ቦሌ ክፍለ ከተማ አስተዳደር ሕንፃ የ5 ደቂቃ የእግር መንገድ ነው።
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Minibus Taxi Routes -->
+                    <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 flex items-start space-x-3 space-x-reverse">
+                        <div class="p-2 bg-amber-100 text-amber-800 rounded-lg shrink-0">
+                            <i data-lucide="car-taxi-front" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800" id="taxi-title">የሚኒባስ ታክሲ ተራዎች</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed" id="taxi-desc">
+                                ከቦሌ አየር መንገድ / ቦሌ መድኃኔዓለም፡ ወደ መገናኛ የሚሄድ ታክሲ ይያዙ። ሌም ሆቴል ወይም መገናኛ ማራቶን ሕንፃ ወረድ ብለው ይግቡ።
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Anbessa & Sheger City Bus -->
+                    <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 flex items-start space-x-3 space-x-reverse">
+                        <div class="p-2 bg-blue-100 text-blue-800 rounded-lg shrink-0">
+                            <i data-lucide="bus" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800" id="bus-title">የአንበሳ እና ሸገር ከተማ አውቶቡስ</h4>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed" id="bus-desc">
+                                መስመር 12፣ 24፣ እና 35 አውቶቡሶች መገናኛ ዋና ማደያ ይቆማሉ።
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Working Hours Warning Box -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center space-x-2 text-xs text-amber-800">
+                        <i data-lucide="info" class="w-4 h-4 shrink-0 text-amber-600"></i>
+                        <span id="work-hours-tip">የሥራ ሰዓት፡ ከሰኞ እስከ ዓርብ ከጠዋቱ 2:30 - 11:00፤ ቅዳሜ ከጠዋቱ 2:30 - 6:00 ሰዓት ነው።</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Application Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:space-y-0">
+            <div>
+                <p class="font-semibold text-slate-200" id="footer-copy">
+                    © 2026 የቦሌ ክፍለ ከተማ አስተዳደር - አዲስ አበባ ኢትዮጵያ
+                </p>
+                <p class="text-slate-500 mt-0.5" id="footer-address">
+                    አድራሻ፡ ቦሌ ክፍለ ከተማ፣ መገናኛ፣ አዲስ አበባ | ስልክ፡ +251 11 662 0000
+                </p>
+            </div>
+            <div class="flex justify-center space-x-4">
+                <a href="#map" class="text-slate-400 hover:text-amber-400 transition" id="foot-link-map">ካርታ</a>
+                <a href="#directory-title" class="text-slate-400 hover:text-amber-400 transition" id="foot-link-dir">የፎቅ መመሪያ</a>
+                <a href="#req-title" class="text-slate-400 hover:text-amber-400 transition" id="foot-link-req">መስፈርቶች</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Application Logic & Interactive Scripts -->
+    <script>
+        let currentLang = 'am';
+        let currentTransportMode = 'taxi';
+        let map = null;
+        let activeMarkers = [];
+        let currentRoutePolyline = null;
+        let tileLayers = {};
+        let currentTileLayer = null;
+
+        // Origin Hubs Dataset
+        const origins = {
+            megenagna: { name_am: "መገናኛ አደባባይ (Megenagna Square)", name_en: "Megenagna Square", lat: 8.9806, lng: 38.7836 },
+            bole_airport: { name_am: "ቦሌ ዓለም አቀፍ ኤርፖርት (Bole Airport)", name_en: "Bole Airport", lat: 8.9778, lng: 38.7993 },
+            stadium: { name_am: "ስታዲየም / መስቀል አደባባይ (Stadium / Meskel Sq)", name_en: "Stadium / Meskel Sq", lat: 9.0108, lng: 38.7612 },
+            ayat: { name_am: "አያት / ሲኤምሲ (Ayat / CMC)", name_en: "Ayat / CMC", lat: 9.0080, lng: 38.8350 },
+            gotera: { name_am: "ጎተራ / ሳሪስ (Gotera / Saris)", name_en: "Gotera / Saris", lat: 8.9680, lng: 38.7550 },
+            torhailoch: { name_am: "ጦርኃይሎች (Torhailoch)", name_en: "Torhailoch", lat: 9.0120, lng: 38.7250 },
+            kazanchis: { name_am: "ካዛንችስ (Kazanchis)", name_en: "Kazanchis", lat: 9.0180, lng: 38.7680 }
+        };
+
+        // Destination Locations Dataset
+        const locations = {
+            main_hq: {
+                name_am: "የቦሌ ክፍለ ከተማ ዋና አስተዳደር (መገናኛ HQ)",
+                name_en: "Bole Sub City Main Administration HQ",
+                lat: 8.9806,
+                lng: 38.7836,
+                type: "hq",
+                desc_am: "መገናኛ፣ ከማራቶን ሕንፃ አጠገብ፣ ዋና ክፍለ ከተማ",
+                desc_en: "Megenagna, near Marathon Building",
+                phone: "+251 11 662 0001"
+            },
+            revenue_office: {
+                name_am: "የቦሌ ክፍለ ከተማ ገቢዎች ጽ/ቤት",
+                name_en: "Bole Sub City Revenue Office",
+                lat: 8.9818,
+                lng: 38.7852,
+                type: "revenue",
+                desc_am: "መገናኛ ሌም ሆቴል አካባቢ",
+                desc_en: "Megenagna Lem Hotel area",
+                phone: "+251 11 662 0450"
+            },
+            driver_licensing: {
+                name_am: "የአሽከርካሪና ተሽከርካሪ ፈቃድ ማዕከል",
+                name_en: "Driver & Vehicle Licensing Center",
+                lat: 8.9745,
+                lng: 38.7910,
+                type: "revenue",
+                desc_am: "ገርጂ መብራት ኃይል አካባቢ",
+                desc_en: "Gerji Mebrat Haile Area",
+                phone: "+251 11 629 1100"
+            },
+            woreda_01: {
+                name_am: "ወረዳ 01 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 01 Administration Office",
+                lat: 8.9880,
+                lng: 38.7750,
+                type: "woreda",
+                desc_am: "ቦሌ አትላስ / ሩዋንዳ ኤምባሲ አካባቢ",
+                desc_en: "Bole Atlas / Near Rwanda Embassy",
+                phone: "+251 11 661 1201"
+            },
+            woreda_03: {
+                name_am: "ወረዳ 03 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 03 Administration Office",
+                lat: 8.9720,
+                lng: 38.7950,
+                type: "woreda",
+                desc_am: "ገርጂ ኢምፔሪያል ሆቴል በስተጀርባ",
+                desc_en: "Gerji, Behind Imperial Hotel",
+                phone: "+251 11 629 0303"
+            },
+            woreda_05: {
+                name_am: "ወረዳ 05 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 05 Administration Office",
+                lat: 8.9950,
+                lng: 38.8250,
+                type: "woreda",
+                desc_am: "ሀያት ዞን 2 አካባቢ",
+                desc_en: "Hayat Zone 2 Area",
+                phone: "+251 11 667 0505"
+            },
+            woreda_06: {
+                name_am: "ወረዳ 06 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 06 Administration Office",
+                lat: 8.9980,
+                lng: 38.7880,
+                type: "woreda",
+                desc_am: "ቦሌ መድኃኔዓለም ቤተክርስቲያን አቅራቢያ",
+                desc_en: "Near Bole Medhaniallem Church",
+                phone: "+251 11 663 0606"
+            },
+            woreda_11: {
+                name_am: "ወረዳ 11 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 11 Administration Office",
+                lat: 8.9890,
+                lng: 38.8180,
+                type: "woreda",
+                desc_am: "ጎሮ / ጃክሮስ አካባቢ",
+                desc_en: "Goro / Jackros Area",
+                phone: "+251 11 667 1111"
+            },
+            woreda_13: {
+                name_am: "ወረዳ 13 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 13 Administration Office",
+                lat: 8.9830,
+                lng: 38.7840,
+                type: "woreda",
+                desc_am: "መገናኛ ለሚ ኩራ ወሰን አካባቢ",
+                desc_en: "Megenagna Lemi Kura Border Area",
+                phone: "+251 11 662 1313"
+            },
+            woreda_14: {
+                name_am: "ወረዳ 14 አስተዳደር ጽ/ቤት",
+                name_en: "Woreda 14 Administration Office",
+                lat: 8.9550,
+                lng: 38.7800,
+                type: "woreda",
+                desc_am: "ቡልቡላ አካባቢ",
+                desc_en: "Bulbula Area",
+                phone: "+251 11 665 1414"
+            }
+        };
+
+        // Floor directory data
+        const floorData = {
+            0: [
+                { title_am: "የሕዝብ ግንኙነት እና አቤቱታ ማስተናገጃ", title_en: "Public Relations & Complaints", window: "መስኮት 1-3", desc_am: "አጠቃላይ መረጃ፣ የቅሬታ መቀበያ እና መመሪያ መስጫ ቦታ።", desc_en: "General info, public complaints and visitor guidance." },
+                { title_am: "የወሳኝ ኩነቶች ምዝገባ (ልደት/ጋብቻ/ሞት)", title_en: "Vital Events Registration", window: "መስኮት 4-8", desc_am: "የልደት፣ ጋብቻ፣ ፍቺ እና ሞት ምስክር ወረቀቶች መስጫ።", desc_en: "Issuance of birth, marriage, divorce, and death certificates." },
+                { title_am: "የነዋሪነት መታወቂያ አገልግሎት", title_en: "Resident ID Services", window: "መስኮት 9-12", desc_am: "የአዲስ እና የታደሰ የነዋሪነት መታወቂያ መስኮት።", desc_en: "Issuance and renewal of resident digital ID cards." }
+            ],
+            1: [
+                { title_am: "የንግድ ምዝገባ እና ፈቃድ ጽ/ቤት", title_en: "Trade Registration & Licensing", window: "ክፍል 102", desc_am: "የአዲስ ንግድ ፈቃድ ማውጫ እና ነባር ንግድ ፈቃድ ማደሻ።", desc_en: "New business registration and annual license renewals." },
+                { title_am: "የግብር ከፋይ መለያ (TIN) አገልግሎት", title_en: "Taxpayer ID (TIN) Office", window: "ክፍል 105", desc_am: "የቲን ቁጥር ማውጫ እና ማስተካከያ።", desc_en: "Issuance and modification of TIN registration." }
+            ],
+            2: [
+                { title_am: "የከተማ ቦታ እና ይዞታ አስተዳደር", title_en: "Land & Property Administration", window: "ክፍል 201", desc_am: "የቦታ ካርታ፣ የይዞታ ማረጋገጫ እና ስም ዝውውር።", desc_en: "Land title certificates, deeds, and property transfers." },
+                { title_am: "የግንባታ ፈቃድ እና ቁጥጥር", title_en: "Construction Permit & Inspection", window: "ክፍል 208", desc_am: "የግንባታ ዲዛይን ማጽደቂያ እና የግንባታ ፈቃድ።", desc_en: "Architectural plan approvals and building construction permits." }
+            ],
+            3: [
+                { title_am: "የማህበራዊ ዋስትና እና ስራ ስምሪት", title_en: "Social Affairs & Job Creation", window: "ክፍል 304", desc_am: "የአነስተኛ እና ጥቃቅን ኢንተርፕራይዝ ምዝገባ።", desc_en: "SME business enterprise registration and youth employment." },
+                { title_am: "የፍትህ እና ህግ ጉዳዮች", title_en: "Justice & Legal Services", window: "ክፍል 312", desc_am: "የውል እና ማስረጃ ማረጋገጫ ድጋፍ።", desc_en: "Legal documentation support and notarization affairs." }
+            ],
+            4: [
+                { title_am: "የዋና ክፍለ ከተማ ሥራ አስፈጻሚ ቢሮ", title_en: "Chief Executive Office", window: "ክፍል 401", desc_am: "የክፍለ ከተማው ዋና ሥራ አስፈጻሚ እና ምክትል ቢሮዎች።", desc_en: "Sub-city Chief Executive Officer and Cabinet offices." },
+                { title_am: "የገቢዎች ባለስልጣን ቅርንጫፍ", title_en: "Revenue Branch Management", window: "ክፍል 502", desc_am: "የገቢዎች አስተዳደር እና የታክስ ክሊራንስ የበላይ ኃላፊ።", desc_en: "Tax compliance management and revenue head office." }
+            ]
+        };
+
+        window.onload = function() {
+            initMap();
+            switchFloor(0);
+            calculateRoute();
+            checkOfficeStatus();
+            lucide.createIcons();
+
+            window.addEventListener('resize', () => {
+                if (map) map.invalidateSize();
+            });
+        };
+
+        function initMap() {
+            const defaultLat = 8.9806;
+            const defaultLng = 38.7836;
+
+            map = L.map('map', {
+                center: [defaultLat, defaultLng],
+                zoom: 14,
+                zoomControl: true
+            });
+
+            // Tile layers
+            tileLayers.google = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps'
+            });
+
+            tileLayers.satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps'
+            });
+
+            tileLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            });
+
+            currentTileLayer = tileLayers.google;
+            currentTileLayer.addTo(map);
+
+            renderMapMarkers();
+
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 300);
+        }
+
+        function setTileLayer(type) {
+            if (!map || !tileLayers[type]) return;
+
+            if (currentTileLayer) {
+                map.removeLayer(currentTileLayer);
+            }
+
+            currentTileLayer = tileLayers[type];
+            currentTileLayer.addTo(map);
+
+            ['google', 'satellite', 'osm'].forEach(t => {
+                const btn = document.getElementById(`layer-btn-${t}`);
+                if (btn) {
+                    if (t === type) {
+                        btn.className = "px-2.5 py-1 rounded-md bg-white text-emerald-700 font-bold shadow-sm";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900";
+                    }
+                }
+            });
+        }
+
+        function renderMapMarkers() {
+            activeMarkers.forEach(m => map.removeLayer(m));
+            activeMarkers = [];
+
+            Object.keys(locations).forEach(key => {
+                const loc = locations[key];
+                let colorClass = loc.type === 'hq' ? '#dc2626' : (loc.type === 'woreda' ? '#059669' : '#d97706');
+
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background-color: ${colorClass}; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+
+                const marker = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(map);
+
+                const nameText = currentLang === 'am' ? loc.name_am : loc.name_en;
+                const descText = currentLang === 'am' ? loc.desc_am : loc.desc_en;
+                const gmapsPinUrl = `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`;
+
+                const popupHtml = `
+                    <div class="p-2 space-y-1.5">
+                        <div class="font-bold text-xs text-slate-900">${nameText}</div>
+                        <div class="text-[11px] text-slate-600">${descText}</div>
+                        <div class="text-[10px] text-emerald-700 font-semibold">${loc.phone}</div>
+                        <div class="flex items-center space-x-1 pt-1">
+                            <button onclick="selectDestinationFromMap('${key}')" class="flex-1 text-center text-[10px] bg-emerald-700 text-white py-1 rounded font-bold hover:bg-emerald-800 transition">
+                                ${currentLang === 'am' ? 'አቅጣጫ አሳይ' : 'Route Here'}
+                            </button>
+                            <a href="${gmapsPinUrl}" target="_blank" class="px-2 py-1 text-[10px] bg-slate-100 border border-slate-300 text-slate-700 rounded font-semibold hover:bg-slate-200 transition">
+                                Google Maps
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml, { className: 'custom-popup' });
+                activeMarkers.push(marker);
+            });
+        }
+
+        function resetMapCenter() {
+            if (map) {
+                map.setView([8.9806, 38.7836], 14);
+                map.invalidateSize();
+            }
+        }
+
+        function selectDestinationFromMap(key) {
+            const destSelect = document.getElementById('destination-select');
+            if (destSelect) {
+                destSelect.value = key;
+                calculateRoute();
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function setMode(mode) {
+            currentTransportMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('border-2', 'border-emerald-600', 'bg-emerald-50', 'text-emerald-800');
+                btn.classList.add('border-slate-200', 'text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`mode-${mode}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('border-slate-200', 'text-slate-600');
+                activeBtn.classList.add('border-2', 'border-emerald-600', 'bg-emerald-50', 'text-emerald-800');
+            }
+
+            calculateRoute();
+        }
+
+        async function fetchRoadRouteGeometry(originObj, destObj, mode) {
+            // Determine profile: driving or foot
+            const profile = (mode === 'walk') ? 'foot' : 'driving';
+            
+            // Primary & secondary routing API endpoints for road geometry
+            const primaryUrl = `https://router.project-osrm.org/route/v1/${profile}/${originObj.lng},${originObj.lat};${destObj.lng},${destObj.lat}?overview=full&geometries=geojson&steps=true`;
+            const backupUrl = `https://routing.openstreetmap.de/routed-${profile === 'foot' ? 'foot' : 'car'}/route/v1/${profile}/${originObj.lng},${originObj.lat};${destObj.lng},${destObj.lat}?overview=full&geometries=geojson&steps=true`;
+
+            try {
+                let response = await fetch(primaryUrl);
+                if (!response.ok) {
+                    response = await fetch(backupUrl);
+                }
+                const data = await response.json();
+
+                if (data && data.routes && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    // Convert GeoJSON [lng, lat] array to Leaflet [lat, lng]
+                    const roadPathLatLngs = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    const routeDistanceKm = (route.distance / 1000);
+                    const routeDurationMins = Math.round(route.duration / 60);
+                    const routeSteps = route.legs && route.legs[0] ? route.legs[0].steps : [];
+
+                    return {
+                        latlngs: roadPathLatLngs,
+                        distanceKm: routeDistanceKm,
+                        durationMins: routeDurationMins,
+                        steps: routeSteps
+                    };
+                }
+            } catch (err) {
+                console.warn("Real-road routing fallback active:", err);
+            }
+
+            // Fallback: Interpolated curved path following road layout
+            const dist = calculateDistance(originObj.lat, originObj.lng, destObj.lat, destObj.lng);
+            const midLat = (originObj.lat + destObj.lat) / 2 + 0.002;
+            const midLng = (originObj.lng + destObj.lng) / 2 - 0.002;
+            const fallbackPath = [
+                [originObj.lat, originObj.lng],
+                [midLat, midLng],
+                [destObj.lat, destObj.lng]
+            ];
+
+            let speed = mode === 'car' ? 35 : (mode === 'walk' ? 4.5 : 25);
+            return {
+                latlngs: fallbackPath,
+                distanceKm: dist * 1.25, // realistic road distance factor
+                durationMins: Math.max(3, Math.round(((dist * 1.25) / speed) * 60)),
+                steps: []
+            };
+        }
+
+        async function calculateRoute() {
+            const originKey = document.getElementById('origin-select').value;
+            const destKey = document.getElementById('destination-select').value;
+
+            const originObj = origins[originKey];
+            const destObj = locations[destKey];
+
+            if (!originObj || !destObj) return;
+
+            // Show temporary loading indicator in time badge
+            document.getElementById('route-duration').innerText = currentLang === 'am' ? 'መንገድ በማስላት ላይ...' : 'Calculating road route...';
+
+            // Fetch actual road geometry line
+            const routeResult = await fetchRoadRouteGeometry(originObj, destObj, currentTransportMode);
+
+            const distKm = routeResult.distanceKm;
+            const formattedDist = distKm < 1 ? (distKm * 1000).toFixed(0) + ' ሜትር (m)' : distKm.toFixed(1) + ' ኪ.ሜ (km)';
+            const timeText = routeResult.durationMins + (currentLang === 'am' ? ' ደቂቃ (mins)' : ' mins');
+
+            document.getElementById('route-duration').innerText = timeText;
+            document.getElementById('route-distance').innerText = formattedDist;
+
+            // Update Google Maps Link
+            const gmapTravelMode = currentTransportMode === 'car' ? 'driving' : (currentTransportMode === 'walk' ? 'walking' : 'transit');
+            const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originObj.lat},${originObj.lng}&destination=${destObj.lat},${destObj.lng}&travelmode=${gmapTravelMode}`;
+
+            const extLinkEl = document.getElementById('google-maps-ext-link');
+            if (extLinkEl) {
+                extLinkEl.href = googleMapsDirectionsUrl;
+            }
+
+            // Generate Step-by-Step Directions Text along real roads
+            const stepsContainer = document.getElementById('route-steps');
+            stepsContainer.innerHTML = '';
+
+            const originName = currentLang === 'am' ? originObj.name_am : originObj.name_en;
+            const destName = currentLang === 'am' ? destObj.name_am : destObj.name_en;
+
+            let stepsHtml = '';
+            if (currentLang === 'am') {
+                stepsHtml += `<div class="flex items-start"><i data-lucide="navigation-2" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 1. መነሻ ከ<b>${originName}</b> በዋናው መንገድ ጉዞ ይጀምሩ።</div>`;
+                
+                if (routeResult.steps && routeResult.steps.length > 2) {
+                    // Show top road maneuvers from network
+                    let maneuverCount = 2;
+                    for (let i = 1; i < Math.min(routeResult.steps.length - 1, 4); i++) {
+                        const step = routeResult.steps[i];
+                        if (step.name && step.name.trim() !== '') {
+                            const stepDist = (step.distance < 1000) ? Math.round(step.distance) + ' ሜትር' : (step.distance / 1000).toFixed(1) + ' ኪ.ሜ';
+                            stepsHtml += `<div class="flex items-start"><i data-lucide="corner-up-right" class="w-3.5 h-3.5 text-sky-400 mr-2 shrink-0 mt-0.5"></i> ${maneuverCount}. በ<b>${step.name}</b> መንገድ አድርገው (${stepDist}) ይከተሉ።</div>`;
+                            maneuverCount++;
+                        }
+                    }
+                } else {
+                    if (currentTransportMode === 'taxi') {
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="bus" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 2. ወደ መገናኛ የሚሄድ ታክሲ ወይም አውቶቡስ ይያዙ።</div>`;
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 3. አቅራቢያ የሚገኘው መውረጃ፡ ${destObj.desc_am}።</div>`;
+                    } else if (currentTransportMode === 'walk') {
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="footprints" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 2. በእግር መንገድ አስፋልቱን ተከትለው ወደ ${destName} ይጓዙ።</div>`;
+                    } else {
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="car" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 2. በዋናው አውራ ጎዳና መስመር አድርገው ወደ መዳረሻው ያምሩ።</div>`;
+                    }
+                }
+
+                stepsHtml += `<div class="flex items-start"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400 mr-2 shrink-0 mt-0.5"></i> መዳረሻ ደርሰዋል፡ ${destObj.name_am}።</div>`;
+            } else {
+                stepsHtml += `<div class="flex items-start"><i data-lucide="navigation-2" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 1. Start journey along main road from <b>${originName}</b>.</div>`;
+                
+                if (routeResult.steps && routeResult.steps.length > 2) {
+                    let maneuverCount = 2;
+                    for (let i = 1; i < Math.min(routeResult.steps.length - 1, 4); i++) {
+                        const step = routeResult.steps[i];
+                        if (step.name && step.name.trim() !== '') {
+                            const stepDist = (step.distance < 1000) ? Math.round(step.distance) + ' m' : (step.distance / 1000).toFixed(1) + ' km';
+                            stepsHtml += `<div class="flex items-start"><i data-lucide="corner-up-right" class="w-3.5 h-3.5 text-sky-400 mr-2 shrink-0 mt-0.5"></i> ${maneuverCount}. Follow <b>${step.name}</b> (${stepDist}).</div>`;
+                            maneuverCount++;
+                        }
+                    }
+                } else {
+                    if (currentTransportMode === 'taxi') {
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="bus" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 2. Board minibus taxi or city bus along main avenue towards Megenagna.</div>`;
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 3. Dropoff landmark: ${destObj.desc_en}.</div>`;
+                    } else if (currentTransportMode === 'walk') {
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="footprints" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 2. Walk along pedestrian sidewalks following street flow.</div>`;
+                    } else {
+                        stepsHtml += `<div class="flex items-start"><i data-lucide="car" class="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0 mt-0.5"></i> 2. Drive along road corridor towards destination parking.</div>`;
+                    }
+                }
+
+                stepsHtml += `<div class="flex items-start"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400 mr-2 shrink-0 mt-0.5"></i> Arrived at target: ${destObj.name_en}.</div>`;
+            }
+
+            stepsContainer.innerHTML = stepsHtml;
+            lucide.createIcons();
+
+            // Render exact road polyline on map
+            if (currentRoutePolyline) {
+                map.removeLayer(currentRoutePolyline);
+            }
+
+            const lineColor = currentTransportMode === 'walk' ? '#10b981' : '#0284c7';
+
+            currentRoutePolyline = L.polyline(routeResult.latlngs, {
+                color: lineColor,
+                weight: 5,
+                opacity: 0.9,
+                lineCap: 'round',
+                lineJoin: 'round',
+                smoothFactor: 1
+            }).addTo(map);
+
+            // Fit map view to exact route bounds with padding
+            map.fitBounds(currentRoutePolyline.getBounds(), { padding: [45, 45] });
+            setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+        }
+
+        function switchFloor(floorNum) {
+            document.querySelectorAll('.floor-tab').forEach(btn => {
+                btn.classList.remove('bg-emerald-600', 'text-white');
+                btn.classList.add('bg-slate-100', 'text-slate-700');
+            });
+
+            const activeBtn = document.getElementById(`floor-btn-${floorNum}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-100', 'text-slate-700');
+                activeBtn.classList.add('bg-emerald-600', 'text-white');
+            }
+
+            const display = document.getElementById('floor-content-display');
+            const items = floorData[floorNum] || [];
+
+            let html = '';
+            items.forEach(item => {
+                const title = currentLang === 'am' ? item.title_am : item.title_en;
+                const desc = currentLang === 'am' ? item.desc_am : item.desc_en;
+
+                html += `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 hover:border-emerald-400 transition space-y-2">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h4 class="font-bold text-sm text-slate-800">${title}</h4>
+                            <span class="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">${item.window}</span>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">${desc}</p>
+                    </div>
+                `;
+            });
+
+            display.innerHTML = html;
+        }
+
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('hidden');
+            }
+        }
+
+        function filterLocations() {
+            const query = document.getElementById('quick-search-input').value.toLowerCase();
+            const select = document.getElementById('destination-select');
+            
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                const text = opt.text.toLowerCase();
+                if (text.includes(query) || query === '') {
+                    opt.style.display = 'block';
+                } else {
+                    opt.style.display = 'none';
+                }
+            }
+        }
+
+        function checkOfficeStatus() {
+            const now = new Date();
+            const day = now.getDay();
+            const hour = now.getHours();
+
+            let isOpen = false;
+            if (day >= 1 && day <= 5) {
+                if (hour >= 8 && hour < 17) isOpen = true;
+            } else if (day === 6) {
+                if (hour >= 8 && hour < 12) isOpen = true;
+            }
+
+            const badge = document.getElementById('status-badge');
+            const statusTxt = document.getElementById('status-text');
+
+            if (isOpen) {
+                statusTxt.innerText = currentLang === 'am' ? 'ክፍት ነው (Open Now)' : 'Open Now';
+                badge.className = "hidden sm:flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/80 text-emerald-200 border border-emerald-500";
+            } else {
+                statusTxt.innerText = currentLang === 'am' ? 'ተዘግቷል (Closed)' : 'Closed Now';
+                badge.className = "hidden sm:flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-900/80 text-red-200 border border-red-500";
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'am' ? 'en' : 'am';
+            document.getElementById('lang-text').innerText = currentLang === 'am' ? 'English' : 'አማርኛ';
+
+            if (currentLang === 'en') {
+                document.getElementById('header-title').innerText = "Bole Sub City Administration";
+                document.getElementById('header-subtitle').innerText = "Direction, Office Directory & Public Service Locator";
+                document.getElementById('hero-heading').innerText = "Navigating Bole Sub City Offices?";
+                document.getElementById('hero-desc').innerText = "Find step-by-step directions, transport options, building directory, and service requirements for Bole Sub City Administration & Woreda Offices.";
+                document.getElementById('hero-badge').innerText = "Megenagna (Main HQ)";
+                document.getElementById('stat-woredas').innerText = "Woredas";
+                document.getElementById('stat-main').innerText = "Main HQ";
+                document.getElementById('stat-floors').innerText = "Service Floors";
+                document.getElementById('stat-transit').innerText = "Transit Hub";
+                document.getElementById('planner-title').innerHTML = `<i data-lucide="navigation" class="w-5 h-5 text-emerald-600 mr-2"></i> Route Planner`;
+                document.getElementById('planner-tag').innerText = "Live Directions";
+                document.getElementById('label-from').innerText = "Starting Point";
+                document.getElementById('label-to').innerText = "Destination Office";
+                document.getElementById('label-mode').innerText = "Transport Mode";
+                document.getElementById('mode-txt-taxi').innerText = "Taxi / Bus";
+                document.getElementById('mode-txt-car').innerText = "Drive Car";
+                document.getElementById('mode-txt-walk').innerText = "Walk";
+                document.getElementById('est-time-label').innerText = "Estimated Duration:";
+                document.getElementById('label-quick-filter').innerText = "Quick Woreda / Service Search";
+                document.getElementById('map-header-title').innerText = "Bole Sub City Interactive Map";
+                document.getElementById('btn-recenter').innerText = "Recenter Map";
+                document.getElementById('legend-hq').innerText = "Main HQ (Megenagna)";
+                document.getElementById('legend-woredas').innerText = "Woreda Offices";
+                document.getElementById('legend-revenue').innerText = "Revenue / Centers";
+                document.getElementById('directory-title').innerHTML = `<i data-lucide="layers" class="w-6 h-6 text-emerald-600 mr-2"></i> Building Directory & Floor Plan`;
+                document.getElementById('directory-sub').innerText = "Office locations by floor in the main sub-city building at Megenagna";
+                document.getElementById('building-location-tag').innerText = "Bole Megenagna - Next to Marathon Bldg";
+                document.getElementById('req-title').innerHTML = `<i data-lucide="file-check-2" class="w-5 h-5 text-emerald-600 mr-2"></i> Required Documents Checklist`;
+                document.getElementById('req-sub').innerText = "Ensure you bring these documents prior to visiting";
+                document.getElementById('transit-title').innerHTML = `<i data-lucide="bus-front" class="w-5 h-5 text-emerald-600 mr-2"></i> Public Transport Routes`;
+                document.getElementById('transit-sub').innerText = "How to reach Bole HQ from major city hubs";
+
+                document.getElementById('serv-1-title').innerHTML = `<i data-lucide="id-card" class="w-4 h-4 text-emerald-600 mr-2"></i> Resident ID Card Issuance / Renewal`;
+                document.getElementById('serv-1-doc1').innerText = "• Residency confirmation form from local Woreda";
+                document.getElementById('serv-1-doc2').innerText = "• 3 passport-sized recent photographs";
+                document.getElementById('serv-1-doc3').innerText = "• House number document or valid rental contract";
+                document.getElementById('serv-1-doc4').innerText = "• Previous ID card (if renewing)";
+
+                document.getElementById('serv-2-title').innerHTML = `<i data-lucide="briefcase" class="w-4 h-4 text-emerald-600 mr-2"></i> Trade License Registration & Renewal`;
+                document.getElementById('serv-2-doc1').innerText = "• Renewed Resident ID card";
+                document.getElementById('serv-2-doc2').innerText = "• Taxpayer Identification Number (TIN Certificate)";
+                document.getElementById('serv-2-doc3').innerText = "• Official Tax Clearance certificate from Revenue office";
+                document.getElementById('serv-2-doc4').innerText = "• Registered business lease/rent agreement";
+
+                document.getElementById('lrt-title').innerText = "Light Rail Transit (LRT)";
+                document.getElementById('lrt-desc').innerText = "Take the East-West or North-South LRT line and exit at Megenagna LRT Station. The sub-city HQ is a 5-minute walk from the station.";
+                document.getElementById('taxi-title').innerText = "Minibus Taxi Connections";
+                document.getElementById('taxi-desc').innerText = "From Bole Airport / Medhaniallem: Take minibus taxi towards Megenagna. Alight near Lem Hotel or Marathon Building.";
+                document.getElementById('bus-title').innerText = "Anbessa & Sheger City Buses";
+                document.getElementById('bus-desc').innerText = "City bus routes 12, 24, and 35 stop directly at Megenagna main terminal.";
+                document.getElementById('work-hours-tip').innerText = "Working Hours: Monday to Friday 8:30 AM - 5:00 PM; Saturday 8:30 AM - 12:30 PM.";
+
+                document.getElementById('footer-copy').innerText = "© 2026 Bole Sub City Administration - Addis Ababa, Ethiopia";
+                document.getElementById('footer-address').innerText = "Address: Bole Sub City, Megenagna, Addis Ababa | Phone: +251 11 662 0000";
+            } else {
+                location.reload();
+                return;
+            }
+
+            renderMapMarkers();
+            calculateRoute();
+            switchFloor(0);
+            checkOfficeStatus();
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
